@@ -98,9 +98,9 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void init(fingerprint_device_t* device) {
         LOG(INFO) << "Initializing UDFPS handler";
-        
+
         mDevice = device;
-        
+
         // Open device nodes
         touch_fd_ = android::base::unique_fd(open(TOUCH_DEV_PATH, O_RDWR));
         if (touch_fd_.get() < 0) {
@@ -123,6 +123,12 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
         
         if (isFpcFod) {
             screenThread_ = std::thread([this]() { screenStateMonitorThread(); });
+        }
+
+        // AÑADIDO: Forzar el panel táctil a mantenerse despierto para FPC
+        if (isFpcFod) {
+            LOG(INFO) << "FPC detected: Enforcing FOD_STATUS_ON to prevent fts_ts sleep";
+            setFodStatus(FOD_STATUS_ON);
         }
 
         LOG(INFO) << "UDFPS handler initialized";
@@ -162,7 +168,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void onAcquired(int32_t result, int32_t vendorCode) {
         LOG(INFO) << __func__ << " result: " << result << " vendorCode: " << vendorCode;
-        
+
         if (static_cast<AcquiredInfo>(result) == AcquiredInfo::GOOD) {
             // Disable HBM on successful acquisition
             {
@@ -175,9 +181,12 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
                     ioctl(disp_fd_.get(), MI_DISP_IOCTL_SET_LOCAL_HBM, &req);
                 }
             }
-            
+
             if (!enrolling.load()) {
-                setFodStatus(FOD_STATUS_OFF);
+                // MODIFICADO: Evitar apagar el panel si es FPC
+                if (!isFpcFod) {
+                    setFodStatus(FOD_STATUS_OFF);
+                }
             }
         }
 
@@ -197,7 +206,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
     void cancel() {
         LOG(INFO) << __func__;
         enrolling.store(false);
-        setFodStatus(FOD_STATUS_OFF);
+        // MODIFICADO: Evitar apagar el panel si es FPC
+        if (!isFpcFod) {
+            setFodStatus(FOD_STATUS_OFF);
+        }
     }
 
     void preEnroll() {
@@ -213,7 +225,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
     void postEnroll() {
         LOG(INFO) << __func__;
         enrolling.store(false);
-        setFodStatus(FOD_STATUS_OFF);
+        // MODIFICADO: Evitar apagar el panel si es FPC
+        if (!isFpcFod) {
+            setFodStatus(FOD_STATUS_OFF);
+        }
     }
 
   private:
@@ -289,10 +304,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void fodPressMonitorThread() {
         LOG(INFO) << "FOD press monitor thread started";
-        
+
         int fd = open(FOD_PRESS_STATUS_PATH, O_RDONLY);
         if (fd < 0) {
-            LOG(ERROR) << "Failed to open " << FOD_PRESS_STATUS_PATH 
+            LOG(ERROR) << "Failed to open " << FOD_PRESS_STATUS_PATH
                        << ", error: " << strerror(errno);
             return;
         }
@@ -308,7 +323,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
         while (isRunning.load()) {
             int rc = poll(&fodPressStatusPoll, 1, 1000);  // 1 second timeout
-            
+
             if (rc < 0) {
                 if (errno == EINTR) continue;
                 LOG(ERROR) << "Poll failed: " << strerror(errno);
@@ -366,10 +381,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void displayEventMonitorThread() {
         LOG(INFO) << "Display event monitor thread started";
-        
+
         int fd = open(DISP_FEATURE_PATH, O_RDWR);
         if (fd < 0) {
-            LOG(ERROR) << "Failed to open " << DISP_FEATURE_PATH 
+            LOG(ERROR) << "Failed to open " << DISP_FEATURE_PATH
                        << ", error: " << strerror(errno);
             return;
         }
@@ -393,7 +408,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
         while (isRunning.load()) {
             int rc = poll(&dispEventPoll, 1, 1000);  // 1 second timeout
-            
+
             if (rc < 0) {
                 if (errno == EINTR) continue;
                 LOG(ERROR) << "Display poll failed: " << strerror(errno);
@@ -429,8 +444,8 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
             LOG(DEBUG) << "Display event data: 0x" << std::hex << value;
 
             bool localHbmUiReady = value & LOCAL_HBM_UI_READY;
-            
-            std::lock_guard<std::mutex> deviceLock(device_mutex_);
+
+            std::lock_guard<std::mutex> lock(device_mutex_);
             if (mDevice != nullptr) {
                 mDevice->extCmd(mDevice, COMMAND_NIT,
                               localHbmUiReady ? PARAM_NIT_FOD : PARAM_NIT_NONE);
@@ -443,7 +458,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void setFodStatus(int value) {
         std::lock_guard<std::mutex> lock(touch_mutex_);
-        
+
         if (touch_fd_.get() < 0) {
             LOG(ERROR) << "Touch device not opened";
             return;
