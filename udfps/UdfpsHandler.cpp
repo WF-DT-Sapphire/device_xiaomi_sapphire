@@ -125,13 +125,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
             screenThread_ = std::thread([this]() { screenStateMonitorThread(); });
         }
 
-        // AÑADIDO: Forzar el panel táctil a mantenerse despierto para FPC
-        if (isFpcFod) {
-            LOG(INFO) << "FPC detected: Enforcing FOD_STATUS_ON to prevent fts_ts sleep";
-            setFodStatus(FOD_STATUS_ON);
-        }
-
-        LOG(INFO) << "UDFPS handler initialized";
+        LOG(INFO) << "UDFPS handler initialized, isFpcFod=" << isFpcFod;
     }
 
     void onFingerDown(uint32_t /*x*/, uint32_t /*y*/, float /*minor*/, float /*major*/) {
@@ -139,6 +133,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
         
         mFbDownTimeMs.store(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count());
+
+        // Mark auth session as active — from this point fodPressMonitorThread
+        // is allowed to forward fod_press_status events to setFingerDown.
+        isAuthSessionActive.store(true);
 
         /*
          * On fpc_fod devices, enable FOD status when finger down is detected
@@ -153,15 +151,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void onFingerUp() {
         LOG(INFO) << __func__;
-        
-        uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
-        uint64_t elapsed = now - mFbDownTimeMs.load();
-        
-        if (elapsed < 250) {
-            LOG(INFO) << "UDFPS: Ignoring false framework UP (pasaron " << elapsed << "ms)";
-            return;
-        }
+
+        // Clear auth session flag before calling setFingerDown so that
+        // any spurious fod_press_status events after finger-up are ignored.
+        isAuthSessionActive.store(false);
 
         setFingerDown(false);
     }
@@ -183,10 +176,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
             }
 
             if (!enrolling.load()) {
-                // MODIFICADO: Evitar apagar el panel si es FPC
-                if (!isFpcFod) {
-                    setFodStatus(FOD_STATUS_OFF);
-                }
+                setFodStatus(FOD_STATUS_OFF);
             }
         }
 
@@ -205,11 +195,9 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void cancel() {
         LOG(INFO) << __func__;
+        isAuthSessionActive.store(false);
         enrolling.store(false);
-        // MODIFICADO: Evitar apagar el panel si es FPC
-        if (!isFpcFod) {
-            setFodStatus(FOD_STATUS_OFF);
-        }
+        setFodStatus(FOD_STATUS_OFF);
     }
 
     void preEnroll() {
@@ -225,10 +213,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
     void postEnroll() {
         LOG(INFO) << __func__;
         enrolling.store(false);
-        // MODIFICADO: Evitar apagar el panel si es FPC
-        if (!isFpcFod) {
-            setFodStatus(FOD_STATUS_OFF);
-        }
+        setFodStatus(FOD_STATUS_OFF);
     }
 
   private:
@@ -237,6 +222,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
     android::base::unique_fd disp_fd_;
     std::atomic<bool> enrolling{false};
     std::atomic<bool> isRunning{true};
+    // Tracks whether the framework has an active auth session.
+    // fodPressMonitorThread only forwards events to setFingerDown when this is true,
+    // preventing spurious LHBM activations outside of authentication.
+    std::atomic<bool> isAuthSessionActive{false};
     bool isFpcFod;
     
     std::atomic<uint64_t> mFbDownTimeMs{0};
@@ -290,7 +279,6 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
 
     void shutdownThreads() {
         isRunning.store(false);
-        // Join threads if they are running
         if (fodThread_.joinable()) {
             fodThread_.join();
         }
@@ -308,7 +296,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
         int fd = open(FOD_PRESS_STATUS_PATH, O_RDONLY);
         if (fd < 0) {
             LOG(ERROR) << "Failed to open " << FOD_PRESS_STATUS_PATH
-                       << ", error: " << strerror(errno);
+                      << ", error: " << strerror(errno);
             return;
         }
 
@@ -322,7 +310,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
         };
 
         while (isRunning.load()) {
-            int rc = poll(&fodPressStatusPoll, 1, 1000);  // 1 second timeout
+            int rc = poll(&fodPressStatusPoll, 1, 1000);
 
             if (rc < 0) {
                 if (errno == EINTR) continue;
@@ -330,9 +318,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
                 break;
             }
 
-            if (rc == 0) continue;
+            if (rc == 0) {
+                continue;
+            }
 
-            // Check for expected events
             if (!(fodPressStatusPoll.revents & (POLLERR | POLLPRI))) {
                 if (fodPressStatusPoll.revents & (POLLHUP | POLLNVAL)) {
                     LOG(ERROR) << "Poll error event: " << fodPressStatusPoll.revents;
@@ -342,7 +331,6 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
                 continue;
             }
 
-            // Clear revents
             fodPressStatusPoll.revents = 0;
 
             const bool pressed = readBool(fd);
@@ -372,6 +360,15 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
             }
 
             LOG(DEBUG) << "fod_press_status changed: " << (pressed ? "pressed" : "released");
+
+            // Only forward the event when there is an active auth session.
+            // This prevents the LHBM from lighting up on random touches over
+            // the FOD area when the screen is on but no authentication is running.
+            if (pressed && !isAuthSessionActive.load()) {
+                LOG(DEBUG) << "fod_press_status pressed outside auth session, ignoring";
+                continue;
+            }
+
             setFingerDown(pressed);
         }
 
@@ -385,7 +382,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
         int fd = open(DISP_FEATURE_PATH, O_RDWR);
         if (fd < 0) {
             LOG(ERROR) << "Failed to open " << DISP_FEATURE_PATH
-                       << ", error: " << strerror(errno);
+                      << ", error: " << strerror(errno);
             return;
         }
 
@@ -407,7 +404,7 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
         };
 
         while (isRunning.load()) {
-            int rc = poll(&dispEventPoll, 1, 1000);  // 1 second timeout
+            int rc = poll(&dispEventPoll, 1, 1000);
 
             if (rc < 0) {
                 if (errno == EINTR) continue;
@@ -415,9 +412,10 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
                 break;
             }
 
-            if (rc == 0) continue;
+            if (rc == 0) {
+                continue;
+            }
 
-            // Check for expected events
             if (!(dispEventPoll.revents & POLLIN)) {
                 if (dispEventPoll.revents & (POLLERR | POLLHUP | POLLNVAL)) {
                     LOG(ERROR) << "Display poll error: " << dispEventPoll.revents;
@@ -427,7 +425,6 @@ class XiaomiSm6225UdfpsHandler : public UdfpsHandler {
                 continue;
             }
 
-            // Clear revents
             dispEventPoll.revents = 0;
 
             struct disp_event_resp* response = parseDispEvent(fd);
