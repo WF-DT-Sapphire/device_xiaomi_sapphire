@@ -455,6 +455,20 @@ PRODUCT_PACKAGES += \
 DEVICE_PACKAGE_OVERLAYS += \
     $(LOCAL_PATH)/overlay-lineage
 
+# Device-specific settings
+ PRODUCT_PACKAGES += \
+    ChargeControl \
+    XiaomiVoIPFix
+
+# XiaomiParts
+PRODUCT_SOONG_NAMESPACES += \
+    packages/apps/XiaomiParts
+
+PRODUCT_PACKAGES += \
+    ClearSpeaker \
+    Saturation \
+    ThermalProfiles
+
 # Partitions
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
 
