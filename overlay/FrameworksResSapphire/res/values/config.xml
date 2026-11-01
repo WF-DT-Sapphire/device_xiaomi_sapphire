@@ -491,4 +491,13 @@
 
 	<!-- Whether to play turbulence noise after clicking the play button -->
     <bool name="config_turbulenceNoise">false</bool>
+
+	<!-- Câmeras auxiliares liberadas para o Aperture -->
+    <string-array name="config_camera_aux_package_allowlist" translatable="false">
+        <item>org.lineageos.aperture</item>
+    </string-array>
+
+    <string name="config_thermalFilePath" translatable="false">/sys/class/thermal/thermal_zone0/temp</string>
+    <integer name="config_thermalThreshold">45000</integer>
+
 </resources>
