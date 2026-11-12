@@ -44,7 +44,6 @@ TARGET_CPU_VARIANT := generic
 TARGET_OTA_ASSERT_DEVICE := sapphire,sapphiren
 
 # Audio
-
 AUDIO_FEATURE_ENABLED_DLKM := true
 AUDIO_FEATURE_ENABLED_DTS_EAGLE := false
 AUDIO_FEATURE_ENABLED_EXTENDED_COMPRESS_FORMAT := true
@@ -71,7 +70,7 @@ TARGET_BOOTLOADER_BOARD_NAME := bengal
 $(call soong_config_set, camera, override_format_from_reserved, true)
 
 # Display
-TARGET_SCREEN_DENSITY := 490
+TARGET_SCREEN_DENSITY := 395
 TARGET_HAS_WIDE_COLOR_DISPLAY := true
 TARGET_HAS_HDR_DISPLAY := false
 
