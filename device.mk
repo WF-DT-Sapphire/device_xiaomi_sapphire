@@ -655,3 +655,5 @@ PRODUCT_PACKAGES += \
     firmware_WCNSS_qcom_cfg.ini_symlink \
     firmware_wlanmdsp.mbn_symlink
     
+# Preopt critical applications
+    PRODUCT_DEXPREOPT_SPEED_APPS += Settings SystemUI
