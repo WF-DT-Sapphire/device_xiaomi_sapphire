@@ -82,7 +82,6 @@ persist.mm.enable.prefetch=true
 # NTP
 persist.backup.ntpServer=0.pool.ntp.org
 
-ro.camerax.extensions.enabled=true
 persist.vendor.camera.privapp.list=com.android.camera,org.lineageos.aperture
 
 # Radio
@@ -163,10 +162,8 @@ ro.surface_flinger.uclamp.min=205
 # ART / PACKAGE MANAGER
 # ==========================================
 # dalvik.vm.* / pm.dexopt.* movidos de vendor.prop
-dalvik.vm.dex2oat64.enabled=true
-dalvik.vm.boot-dex2oat-threads=8
-dalvik.vm.image-dex2oat-threads=8
-dalvik.vm.dex2oat-threads=4
+dalvik.vm.boot-dex2oat-threads=4
+dalvik.vm.image-dex2oat-threads=4
 dalvik.vm.dex2oat-cpu-set=4,5,6,7
 dalvik.vm.image-dex2oat-filter=speed
 dalvik.vm.dex2oat-minidebuginfo=false
