@@ -62,7 +62,6 @@ ro.hwui.text_small_cache_height=1024
 ro.hwui.text_large_cache_width=2048
 ro.hwui.text_large_cache_height=1024
 debug.hwui.skia_atrace_enabled=false
-debug.hwui.render_dirty_regions=false
 config.disable_rtt=true
 
 # Media
@@ -122,7 +121,6 @@ debug.renderengine.backend=skiaglthreaded
 debug.hwui.renderer=skiagl
 renderthread.skia.reduceopstasksplitting=true
 debug.sf.disable_egl_image_tracking=1
-debug.sf.disable_backpressure=1
 
 # ==========================================
 # DISPLAY / SURFACE FLINGER
