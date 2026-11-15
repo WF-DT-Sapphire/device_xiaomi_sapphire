@@ -53,6 +53,7 @@ ro.vendor.qti.va_aosp.support=1
 ro.hwui.texture_cache_size=72
 ro.hwui.layer_cache_size=48
 ro.hwui.r_buffer_cache_size=8
+ro.hwui.max_texture_allocation_size=67108864
 ro.hwui.path_cache_size=32
 ro.hwui.gradient_cache_size=1
 ro.hwui.drop_shadow_cache_size=6
@@ -62,6 +63,7 @@ ro.hwui.text_small_cache_height=1024
 ro.hwui.text_large_cache_width=2048
 ro.hwui.text_large_cache_height=1024
 debug.hwui.skia_atrace_enabled=false
+debug.hwui.render_dirty_regions=false
 config.disable_rtt=true
 
 # Media
@@ -108,11 +110,11 @@ ro.opengles.version=196610
 # ==========================================
 # RAM MANAGEMENT
 # ==========================================
-ro.sys.fw.bg_apps_limit=128
-ro.vendor.qti.sys.fw.bg_apps_limit=128
+ro.sys.fw.bg_apps_limit=32
+ro.vendor.qti.sys.fw.bg_apps_limit=32
 ro.vendor.qti.sys.fw.bservice_enable=true
 ro.vendor.qti.sys.fw.bservice_age=10000
-ro.vendor.qti.sys.fw.bservice_limit=128
+ro.vendor.qti.sys.fw.bservice_limit=32
 
 # ==========================================
 # RENDERING
@@ -121,12 +123,13 @@ debug.renderengine.backend=skiaglthreaded
 debug.hwui.renderer=skiagl
 renderthread.skia.reduceopstasksplitting=true
 debug.sf.disable_egl_image_tracking=1
+debug.sf.disable_backpressure=1
 
 # ==========================================
 # DISPLAY / SURFACE FLINGER
 # ==========================================
 # debug.sf.* / ro.surface_flinger.* / persist.sys.sf.* movidos de vendor.prop
-debug.sf.enable_hwc_vds=0
+debug.sf.enable_hwc_vds=1
 debug.sf.latch_unsignaled=0
 debug.sf.auto_latch_unsignaled=0
 debug.sf.enable_transaction_tracing=false
