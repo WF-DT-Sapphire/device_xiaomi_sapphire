@@ -127,8 +127,8 @@ debug.sf.disable_egl_image_tracking=1
 # DISPLAY / SURFACE FLINGER
 # ==========================================
 # debug.sf.* / ro.surface_flinger.* / persist.sys.sf.* movidos de vendor.prop
-debug.sf.enable_hwc_vds=1
-debug.sf.latch_unsignaled=1
+debug.sf.enable_hwc_vds=0
+debug.sf.latch_unsignaled=0
 debug.sf.auto_latch_unsignaled=0
 debug.sf.enable_transaction_tracing=false
 debug.sf.defer_refresh_rate_when_off=1
