@@ -100,7 +100,8 @@ TARGET_KERNEL_CONFIG := vendor/sapphire_defconfig
 TARGET_KERNEL_CLANG_VERSION := r547379
 TARGET_KERNEL_ADDITIONAL_FLAGS := \
     BOARD_PLATFORM=bengal \
-    KCFLAGS=-D__ANDROID_COMMON_KERNEL__
+    KCFLAGS="-D__ANDROID_COMMON_KERNEL__ -Wno-error=strict-prototypes -Wno-error=implicit-int -Wno-error=enum-conversion -Wno-error=shift-count-overflow -Wno-error=constant-conversion"
+
 
 BOARD_CUSTOM_DTBIMG_MK := $(DEVICE_PATH)/dtbs.mk
 BOARD_CUSTOM_DTBOIMG_MK := $(DEVICE_PATH)/dtbs.mk
