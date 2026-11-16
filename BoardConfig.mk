@@ -97,7 +97,7 @@ $(call soong_config_set,libinit,vendor_init_lib,//$(DEVICE_PATH):init_sapphire)
 # Kernel
 TARGET_KERNEL_SOURCE := kernel/xiaomi/sapphire
 TARGET_KERNEL_CONFIG := vendor/sapphire_defconfig
-TARGET_KERNEL_CLANG_VERSION := r547379
+TARGET_KERNEL_CLANG_VERSION := r536225
 TARGET_KERNEL_ADDITIONAL_FLAGS := \
     BOARD_PLATFORM=bengal \
     KCFLAGS="-D__ANDROID_COMMON_KERNEL__ -Wno-error=strict-prototypes -Wno-error=implicit-int -Wno-error=enum-conversion -Wno-error=shift-count-overflow -Wno-error=constant-conversion"
