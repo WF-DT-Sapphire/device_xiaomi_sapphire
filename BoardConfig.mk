@@ -253,9 +253,8 @@ TARGET_USERIMAGES_USE_F2FS := true
 # RIL
 ENABLE_VENDOR_RIL_SERVICE := true
 
-# Fingerprint
-TARGET_USES_FOD_ZPOS := true
-$(call soong_config_set,surfaceflinger,udfps_lib,//hardware/xiaomi:libudfps_extension.xiaomi)
+# FOD illumination goes through libudfpshandler (mi_disp); the kernel has no
+# FOD z-order bit, so TARGET_USES_FOD_ZPOS and udfps_lib are not used
 
 # Security
 BOOT_SECURITY_PATCH := 2026-09-01
