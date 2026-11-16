@@ -121,7 +121,6 @@ ro.vendor.qti.sys.fw.bservice_limit=128
 debug.renderengine.backend=skiaglthreaded
 debug.hwui.renderer=skiagl
 renderthread.skia.reduceopstasksplitting=true
-debug.sf.disable_egl_image_tracking=1
 
 # ==========================================
 # DISPLAY / SURFACE FLINGER
