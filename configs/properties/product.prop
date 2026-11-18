@@ -1,6 +1,3 @@
-# App
-ro.launcher.blur.appLaunch=false
-
 # Audio
 af.fast_track_multiplier=1
 audio.deep_buffer.media=true
@@ -24,7 +21,7 @@ ro.csc.spotify.music.referrerid=xiaomi_mobile
 
 # Bluetooth
 bluetooth.device_id.vendor_id=0x001D
-bluetooth.hfp.codec_aptx_voice.enabled=true
+bluetooth.hfp.codec_aptx_voice.enabled=false
 bluetooth.hfp.swb.aptx.power_management.enabled=false
 bluetooth.profile.a2dp.source.enabled=true
 bluetooth.profile.asha.central.enabled=true
@@ -52,7 +49,6 @@ persist.vendor.bt.a2dp.samplerate=true
 
 # Display
 debug.sf.enable_gl_backpressure=0
-debug.sf.disable_backpressure=1
 persist.vendor.adapt.sampler=true
 
 # Media
@@ -67,13 +63,5 @@ persist.vendor.radio.enable_temp_dds=true
 ro.vendor.radio.fastdormancy=true
 ro.vendor.radio.features_common=3
 
-# lmkd
-ro.lmk.psi_complete_stall_ms=70
-
 # FS-verity
 ro.apk_verity.mode=2
-
-dalvik.vm.boot-dex2oat-cpu-set=4,5,6,7
-dalvik.vm.image-dex2oat-cpu-set=4,5,6,7
-dalvik.vm.background-dex2oat-cpu-set=0,1,2,3
-dalvik.vm.dex2oat-threads=4
