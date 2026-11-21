@@ -687,4 +687,6 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/sensors/init.sensors-wait.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.sensors-wait.rc \
     $(LOCAL_PATH)/configs/sensors/vendor.adsp-wait.sh:$(TARGET_COPY_OUT_VENDOR)/bin/vendor.adsp-wait.sh
+# ViPER4AndroidFX
+$(call inherit-product, packages/apps/ViPER4AndroidFX/config.mk)
 
