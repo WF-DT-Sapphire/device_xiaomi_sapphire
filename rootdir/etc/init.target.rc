@@ -183,9 +183,6 @@ on post-fs-data
 #start tombstones/modem
 mkdir /data/tombstones/modem 0771 system system encryption=Require
 
-on early-boot
-    start vendor.sensors
-
 on boot
     write /dev/cpuset/audio-app/cpus 4-7
     chown system system /sys/class/thermal/thermal_message/boost

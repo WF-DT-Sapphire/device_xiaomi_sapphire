@@ -112,6 +112,8 @@ PRODUCT_PACKAGES += \
 TARGET_SCREEN_HEIGHT := 2400
 TARGET_SCREEN_WIDTH := 1080
 
+PRODUCT_PACKAGES += RemovePackages
+
 # Bluetooth
 PRODUCT_PACKAGES += \
     android.hardware.bluetooth.audio-impl \
@@ -516,6 +518,8 @@ PRODUCT_PACKAGES += \
     sensors.xiaomi.v2
 
 PRODUCT_COPY_FILES += \
+    $(LOCAL_PATH)/configs/sensors/init.sensors-wait.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.sensors-wait.rc \
+    $(LOCAL_PATH)/configs/sensors/vendor.adsp-wait.sh:$(TARGET_COPY_OUT_VENDOR)/bin/vendor.adsp-wait.sh \
     $(LOCAL_PATH)/configs/sensors/hals.conf:$(TARGET_COPY_OUT_VENDOR)/etc/sensors/hals.conf
 
 # Sensors
