@@ -184,7 +184,6 @@ on post-fs-data
 mkdir /data/tombstones/modem 0771 system system encryption=Require
 
 on early-boot
-    start vendor.sensors
 
 on boot
     write /dev/cpuset/audio-app/cpus 4-7
@@ -365,3 +364,4 @@ on property:persist.sys.cota.carrier=OR
 #add for btmac property
 on property:persist.ro.ril.oem.btmac=*
   setprop ro.ril.oem.btmac ${persist.ro.ril.oem.btmac}
+
