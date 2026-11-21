@@ -1,29 +1,21 @@
-patch_ime_navbar() {
-    local arq="frameworks/base/packages/overlays/NavigationBarModeGesturalOverlay/res/values/config.xml"
+LOSMG_PATCHES="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
 
-    [ -f "$arq" ] || {
-        echo -e "${YELLOW}Arquivo não encontrado: $arq${RESET}"
-        return 1
-    }
+losmg_apply_all() {
+    local top p repo
+    top="$(gettop 2>/dev/null)"; top="${top:-$PWD}"
 
-    grep -qE 'name="config_imeDrawsImeNavBar">[[:space:]]*false' "$arq" \
-        && { echo -e "${GREEN}Patch IME navbar já aplicado${RESET}"; return 0; }
+    while IFS= read -r p; do
+        repo="$top/$(dirname "${p#$LOSMG_PATCHES/}")"
+        [ -d "$repo" ] || { echo "[LOSMG] repo não existe: $repo" >&2; continue; }
 
-    sed -i -E 's|(name="config_imeDrawsImeNavBar">)[[:space:]]*true|\1false|' "$arq" \
-        || { echo -e "${RED}sed falhou em $arq${RESET}"; return 1; }
+        if git -C "$repo" apply --reverse --check "$p" 2>/dev/null; then
+            echo "[LOSMG] já aplicado: $(basename "$p")"
+        elif git -C "$repo" apply --check "$p" 2>/dev/null; then
+            git -C "$repo" apply "$p" && echo "[LOSMG] aplicado: $(basename "$p")"
+        else
+            echo "[LOSMG] FALHOU (conflito): $(basename "$p")" >&2
+        fi
+    done < <(find "$LOSMG_PATCHES" -name '*.patch' | sort)
+}
 
-    grep -qE 'name="config_imeDrawsImeNavBar">[[:space:]]*false' "$arq" \
-        && { echo -e "${GREEN}Patch IME navbar aplicado${RESET}"; return 0; } \
-        || { echo -e "${RED}sed rodou mas o valor não mudou${RESET}"; return 1; }
-}; patch_ime_navbar
-
-
-
-gofile_install()
-{
-    echo -e "${YELLOW}Installing gofile upload tool...${RESET}"
-    wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
-        -O "$TARGET_DIR/gofile" && chmod +x "$TARGET_DIR/gofile" || error_exit "Failed to install gofile"
-
-    grep -q 'alias gofile' ~/.bashrc || echo "alias gofile=\"$TARGET_DIR/gofile\"" >> ~/.bashrc
-}; gofile_install
+losmg_apply_all
