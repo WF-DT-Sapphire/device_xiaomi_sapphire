@@ -1,0 +1,29 @@
+From db264a4b8a3f6ca5bb7275afea31960f26a80d44 Mon Sep 17 00:00:00 2001
+From: WhoFoss <245224511+WhoFoss@users.noreply.github.com>
+Date: Sat, 21 Nov 2026 19:39:43 +0000
+Subject: [PATCH] ComputerEngine: remove isDebuggable check to allow signature
+ spoofing
+
+Change-Id: Iaf2131a0a296319f90d093cc43d48a67b7be7377
+---
+ services/core/java/com/android/server/pm/ComputerEngine.java | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/services/core/java/com/android/server/pm/ComputerEngine.java b/services/core/java/com/android/server/pm/ComputerEngine.java
+index d321b767be4f..06699a923418 100644
+--- a/services/core/java/com/android/server/pm/ComputerEngine.java
++++ b/services/core/java/com/android/server/pm/ComputerEngine.java
+@@ -1493,10 +1493,6 @@ public class ComputerEngine implements Computer {
+     public static native boolean isDebuggable();
+ 
+     public static boolean isMicrogSigned(AndroidPackage p) {
+-        if (!isDebuggable()) {
+-            return false;
+-        }
+-
+         // Allowlist the following apps:
+         // * com.android.vending - microG Companion
+         // * com.google.android.gms - microG Services
+-- 
+2.43.0
+

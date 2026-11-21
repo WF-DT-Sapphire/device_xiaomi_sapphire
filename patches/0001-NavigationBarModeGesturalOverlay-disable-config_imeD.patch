@@ -1,0 +1,27 @@
+From 71b230e0bbce4a81974fd7b66a3c33a93216aa75 Mon Sep 17 00:00:00 2001
+From: WhoFoss <245224511+WhoFoss@users.noreply.github.com>
+Date: Sat, 21 Nov 2026 19:36:05 +0000
+Subject: [PATCH] NavigationBarModeGesturalOverlay: disable
+ config_imeDrawsImeNavBar
+
+Change-Id: I71395bdc4c70306bbefc7d979243c1740b56954f
+---
+ .../NavigationBarModeGesturalOverlay/res/values/config.xml      | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/packages/overlays/NavigationBarModeGesturalOverlay/res/values/config.xml b/packages/overlays/NavigationBarModeGesturalOverlay/res/values/config.xml
+index 66fc2ae79c38..242dff4e5b02 100644
+--- a/packages/overlays/NavigationBarModeGesturalOverlay/res/values/config.xml
++++ b/packages/overlays/NavigationBarModeGesturalOverlay/res/values/config.xml
+@@ -31,7 +31,7 @@
+     <bool name="config_navBarTapThrough">true</bool>
+ 
+     <!-- Controls whether the IME renders the back and IME switcher buttons or not. -->
+-    <bool name="config_imeDrawsImeNavBar">true</bool>
++    <bool name="config_imeDrawsImeNavBar">false</bool>
+ 
+     <!-- Controls the size of the back gesture inset. -->
+     <dimen name="config_backGestureInset">30dp</dimen>
+-- 
+2.43.0
+

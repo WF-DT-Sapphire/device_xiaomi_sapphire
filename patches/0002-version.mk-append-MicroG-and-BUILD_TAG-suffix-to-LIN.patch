@@ -1,0 +1,36 @@
+From 8acde254622dffd516ff27c94596723b275311dc Mon Sep 17 00:00:00 2001
+From: WhoFoss <245224511+WhoFoss@users.noreply.github.com>
+Date: Sat, 21 Nov 2026 19:38:14 +0000
+Subject: [PATCH] version.mk: append MicroG and BUILD_TAG suffix to
+ LINEAGE_VERSION_SUFFIX
+
+Change-Id: I474af439114d2bad87c5a3cfde0562830303dce6
+---
+ config/version.mk | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/config/version.mk b/config/version.mk
+index a142fdb2..1fb82d5b 100644
+--- a/config/version.mk
++++ b/config/version.mk
+@@ -31,6 +31,17 @@ endif
+ 
+ LINEAGE_VERSION_SUFFIX := $(LINEAGE_BUILD_DATE)-$(LINEAGE_BUILDTYPE)$(LINEAGE_EXTRAVERSION)-$(LINEAGE_BUILD)
+ 
++# LOSMG: MicroG suffix
++# Add MICROG to suffix if WITH_GMS is true
++ifeq ($(WITH_GMS),true)
++    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MicroG
++endif
++
++# Add custom build tag/feature to suffix if BUILD_TAG is defined
++ifneq ($(BUILD_TAG),)
++    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)
++endif
++
+ # Internal version
+ LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(LINEAGE_VERSION_SUFFIX)
+ 
+-- 
+2.43.0
+
