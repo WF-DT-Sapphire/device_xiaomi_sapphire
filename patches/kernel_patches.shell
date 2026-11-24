@@ -2,6 +2,16 @@
 
 #####################################################################
 #---------------------------------------------------------------------#
+# Autor: WhoFoss
+# Programa: kernel_patches.sh
+# DESCRIÇÃO: Aplica patches de desempenho e configs no kernel do sapphire
+# Dependências: git, patch, sed, awk, tput
+# Recursos: Wild Kernel Patches, module check bypass, defconfig
+#---------------------------------------------------------------------#
+#####################################################################
+
+#####################################################################
+#---------------------------------------------------------------------#
 # VARIÁVEIS
 #---------------------------------------------------------------------#
 #####################################################################
@@ -84,17 +94,14 @@ clonar_dependencias() {
     [ -d "$WILD_DIR" ] || git clone --depth=1 https://github.com/WildKernels/kernel_patches.git "$WILD_DIR"
 }
 
-# Aplica bypass de verificação de módulos
+# Aplica bypass de verificação de módulos (ignora se o primeiro return após bad_version já for 1)
 aplicar_module_bypass() {
     etapa "Module check bypass"
+    if awk '/bad_version:/{f=1} f&&/return/{print; exit}' kernel/module.c | grep -q 'return 1;'; then
+        aviso "Já aplicado: module check bypass"
+        return 0
+    fi
     sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' kernel/module.c
-}
-
-# Aplica Baseband-guard
-aplicar_bbg() {
-    etapa "Baseband-guard"
-    curl -LSs https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh | bash
-    sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' security/Kconfig
 }
 
 # Aplica os patches de desempenho do Wild Kernel Patches
@@ -134,7 +141,7 @@ aplicar_configs() {
         "CONFIG_TMPFS_XATTR=y"
         "CONFIG_TMPFS_POSIX_ACL=y"
         "CONFIG_OVERLAY_FS=y"
-        # BBG
+        # BBG (código já está no kernel)
         "CONFIG_BBG=y"
         # Rede
         "CONFIG_IP_NF_TARGET_TTL=y"
@@ -200,15 +207,11 @@ aplicar_configs() {
 # Aplica todos os patches e configs no kernel
 aplicar_kernel_patches() {
     [ -d "$KERNEL_DIR" ] || { erro "Kernel não encontrado: $KERNEL_DIR"; return 1; }
-    [ -d "$KERNEL_DIR/Baseband-guard" ] && { aviso "Já aplicado, nada a fazer"; return 0; }
     clonar_dependencias
     cd "$KERNEL_DIR" || return 1
     aplicar_module_bypass
-    aplicar_bbg
     aplicar_patches_wild
     aplicar_configs
     cd "$ROOT_DIR" || return 1
     info "Concluído"
-}
-
-aplicar_kernel_patches
+}; aplicar_kernel_patches
