@@ -2,16 +2,16 @@
   {
     "repository": "kernel_xiaomi_sapphire",
     "target_path": "kernel/xiaomi/sapphire",
-    "remote": "theangelplace"
+    "remote": "WF-DT-Sapphire"
   },
   {
     "repository": "kernel_xiaomi_sapphire-devicetrees",
     "target_path": "kernel/xiaomi/sapphire-devicetrees",
-    "remote": "theangelplace"
+    "remote": "WF-DT-Sapphire"
   },
   {
     "repository": "kernel_xiaomi_sapphire-modules",
     "target_path": "kernel/xiaomi/sapphire-modules",
-    "remote": "theangelplace"
+    "remote": "WF-DT-Sapphire"
   }
 ]
