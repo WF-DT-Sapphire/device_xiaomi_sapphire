@@ -1,0 +1,214 @@
+#!/bin/bash
+
+#####################################################################
+#---------------------------------------------------------------------#
+# VARIÁVEIS
+#---------------------------------------------------------------------#
+#####################################################################
+
+ROOT_DIR="${ROOT_DIR:-$(pwd)}"
+KERNEL_DIR="${KERNEL_DIR:-$ROOT_DIR/kernel/xiaomi/sapphire}"
+EXTRAS_DIR="${EXTRAS_DIR:-$ROOT_DIR/extras/ksu}"
+WILD_DIR="$EXTRAS_DIR/wild-kernel-patches"
+DEFCONFIG="arch/arm64/configs/gki_defconfig"
+
+#####################################################################
+#---------------------------------------------------------------------#
+# CORES (tput)
+#---------------------------------------------------------------------#
+#####################################################################
+
+BOLD="$(tput bold)"
+UL="$(tput smul)"
+RESET="$(tput sgr0)"
+VERDE="$(tput setaf 2)"
+AMARELO="$(tput setaf 3)"
+VERMELHO="$(tput setaf 1)"
+CIANO="$(tput setaf 6)"
+
+#####################################################################
+#---------------------------------------------------------------------#
+# FUNÇÕES AUXILIARES
+#---------------------------------------------------------------------#
+#####################################################################
+
+# Exibe título de etapa
+etapa() {
+    echo "${BOLD}${CIANO}${UL}$1${RESET}"
+}
+
+# Exibe mensagem informativa
+info() {
+    echo "${VERDE}$1${RESET}"
+}
+
+# Exibe mensagem de atenção
+aviso() {
+    echo "${AMARELO}$1${RESET}"
+}
+
+# Exibe mensagem de erro
+erro() {
+    echo "${BOLD}${VERMELHO}$1${RESET}"
+}
+
+# Define uma config no defconfig sem duplicar
+set_config() {
+    sed -i "/^$1=/d;/^# $1 is not set/d" "$DEFCONFIG" && echo "$1=$2" >> "$DEFCONFIG"
+}
+
+# Aplica patch somente se o dry-run passar
+aplicar_patch() {
+    local patch_file="$1"
+    if [ ! -f "$patch_file" ]; then
+        aviso "Patch não encontrado: $(basename "$patch_file")"
+        return 0
+    fi
+    if patch -p1 --forward --dry-run -s < "$patch_file" > /dev/null 2>&1; then
+        patch -p1 --forward -s < "$patch_file" && info "Aplicado: $(basename "$patch_file")"
+    else
+        aviso "Ignorado (dry-run falhou): $(basename "$patch_file")"
+    fi
+}
+
+#####################################################################
+#---------------------------------------------------------------------#
+# ETAPAS
+#---------------------------------------------------------------------#
+#####################################################################
+
+# Clona Wild Kernel Patches
+clonar_dependencias() {
+    etapa "Clonando dependências"
+    mkdir -p "$EXTRAS_DIR"
+    [ -d "$WILD_DIR" ] || git clone --depth=1 https://github.com/WildKernels/kernel_patches.git "$WILD_DIR"
+}
+
+# Aplica bypass de verificação de módulos
+aplicar_module_bypass() {
+    etapa "Module check bypass"
+    sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' kernel/module.c
+}
+
+# Aplica Baseband-guard
+aplicar_bbg() {
+    etapa "Baseband-guard"
+    curl -LSs https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh | bash
+    sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/selinux/selinux,baseband_guard/ } }' security/Kconfig
+}
+
+# Aplica os patches de desempenho do Wild Kernel Patches
+aplicar_patches_wild() {
+    etapa "Wild Kernel Patches"
+    local patches=(
+        common/optimized_mem_operations.patch
+        common/file_struct_8bytes_align.patch
+        common/add_timeout_wakelocks_globally.patch
+        common/f2fs_reduce_congestion.patch
+        common/force_tcp_nodelay.patch
+        common/mem_opt_prefetch.patch
+        common/reduce_gc_thread_sleep_time.patch
+        common/add_limitation_scaling_min_freq.patch
+        common/adjust_cpu_scan_order.patch
+        common/f2fs_enlarge_min_fsync_blocks.patch
+        common/increase_ext4_default_commit_age.patch
+        common/increase_sk_mem_packets.patch
+        common/re_write_limitation_scaling_min_freq.patch
+        common/reduce_pci_pme_wakeups.patch
+        common/silence_irq_cpu_logspam.patch
+        common/silence_system_logspam.patch
+        common/use_unlikely_wrap_cpufreq.patch
+        common/unicode_bypass_fix_6.1-.patch
+    )
+    local p
+    for p in "${patches[@]}"; do
+        aplicar_patch "$WILD_DIR/$p"
+    done
+}
+
+# Escreve as configs no defconfig
+aplicar_configs() {
+    etapa "Configs do defconfig"
+    local cfgs=(
+        # OverlayFS / tmpfs
+        "CONFIG_TMPFS_XATTR=y"
+        "CONFIG_TMPFS_POSIX_ACL=y"
+        "CONFIG_OVERLAY_FS=y"
+        # BBG
+        "CONFIG_BBG=y"
+        # Rede
+        "CONFIG_IP_NF_TARGET_TTL=y"
+        "CONFIG_IP6_NF_TARGET_HL=y"
+        "CONFIG_IP6_NF_MATCH_HL=y"
+        "CONFIG_TCP_CONG_ADVANCED=y"
+        "CONFIG_TCP_CONG_BIC=y"
+        "CONFIG_TCP_CONG_WESTWOOD=y"
+        "CONFIG_TCP_CONG_HTCP=y"
+        "CONFIG_TCP_CONG_CUBIC=y"
+        "CONFIG_NET_SCH_FQ=y"
+        "CONFIG_NET_SCH_FQ_CODEL=y"
+        "CONFIG_NET_SCH_CAKE=y"
+        "CONFIG_NET_ACT_CONNMARK=y"
+        "CONFIG_WIREGUARD=y"
+        # IPSet
+        "CONFIG_IP_SET=y"
+        "CONFIG_IP_SET_MAX=65534"
+        "CONFIG_IP_SET_BITMAP_IP=y"
+        "CONFIG_IP_SET_BITMAP_IPMAC=y"
+        "CONFIG_IP_SET_BITMAP_PORT=y"
+        "CONFIG_IP_SET_HASH_IP=y"
+        "CONFIG_IP_SET_HASH_IPMARK=y"
+        "CONFIG_IP_SET_HASH_IPPORT=y"
+        "CONFIG_IP_SET_HASH_IPPORTIP=y"
+        "CONFIG_IP_SET_HASH_IPPORTNET=y"
+        "CONFIG_IP_SET_HASH_IPMAC=y"
+        "CONFIG_IP_SET_HASH_MAC=y"
+        "CONFIG_IP_SET_HASH_NETPORTNET=y"
+        "CONFIG_IP_SET_HASH_NET=y"
+        "CONFIG_IP_SET_HASH_NETNET=y"
+        "CONFIG_IP_SET_HASH_NETPORT=y"
+        "CONFIG_IP_SET_HASH_NETIFACE=y"
+        "CONFIG_IP_SET_LIST_SET=y"
+        "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y"
+        "CONFIG_NETFILTER_XT_SET=y"
+        "CONFIG_NETFILTER_XT_TARGET_LOG=y"
+        "CONFIG_NETFILTER_XT_MATCH_RECENT=y"
+        "CONFIG_IP6_NF_TARGET_MASQUERADE=y"
+        # ZRAM
+        "CONFIG_ZRAM_WRITEBACK=y"
+        "CONFIG_ZRAM_MEMORY_TRACKING=y"
+        # Otimização
+        "CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=n"
+        "CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3=y"
+        # Nome do kernel
+        "CONFIG_LOCALVERSION_AUTO=n"
+    )
+    local c
+    for c in "${cfgs[@]}"; do
+        set_config "${c%%=*}" "${c#*=}"
+    done
+    sed -i '/^CONFIG_LOCALVERSION=/d' "$DEFCONFIG" && echo 'CONFIG_LOCALVERSION=""' >> "$DEFCONFIG"
+    sed -i '/^CONFIG_LSM=/d' "$DEFCONFIG" && echo 'CONFIG_LSM=landlock,lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf,baseband_guard' >> "$DEFCONFIG"
+}
+
+#####################################################################
+#---------------------------------------------------------------------#
+# FUNÇÃO PRINCIPAL
+#---------------------------------------------------------------------#
+#####################################################################
+
+# Aplica todos os patches e configs no kernel
+aplicar_kernel_patches() {
+    [ -d "$KERNEL_DIR" ] || { erro "Kernel não encontrado: $KERNEL_DIR"; return 1; }
+    [ -d "$KERNEL_DIR/Baseband-guard" ] && { aviso "Já aplicado, nada a fazer"; return 0; }
+    clonar_dependencias
+    cd "$KERNEL_DIR" || return 1
+    aplicar_module_bypass
+    aplicar_bbg
+    aplicar_patches_wild
+    aplicar_configs
+    cd "$ROOT_DIR" || return 1
+    info "Concluído"
+}
+
+aplicar_kernel_patches
