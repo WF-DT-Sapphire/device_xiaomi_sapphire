@@ -337,3 +337,6 @@ WPA_SUPPLICANT_VERSION := VER_0_8_X
 
 # Fix: Create directory KERNEL_OBJ/usr for some modules
 $(shell mkdir -p $(OUT_DIR)/target/product/$(TARGET_DEVICE)/obj/KERNEL_OBJ/usr)
+
+# sepolicy extra (WF)
+BOARD_VENDOR_SEPOLICY_DIRS += device/xiaomi/sapphire/sepolicy/wf
