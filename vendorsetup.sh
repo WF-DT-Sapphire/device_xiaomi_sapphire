@@ -22,6 +22,6 @@ losmg_kernel_patches() {
     local top
     top="$(gettop 2>/dev/null)"; top="${top:-$PWD}"
     ROOT_DIR="$top" bash "$LOSMG_PATCHES/kernel_patches.sh"
-}; losmg_kernel_patches
+}
 
 # curl -fsSL https://gist.githubusercontent.com/WhoFoss/4bfd6c040c7e66f39b9c47774fcbc5d8/raw/b95b8398fcef409e61054635b710087d1f36a72d/patch_viperfx.sh | bash
