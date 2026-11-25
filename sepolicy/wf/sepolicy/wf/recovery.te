@@ -1,4 +1,0 @@
-# fs_mgr le /sys/fs/f2fs/features/linear_lookup antes de rodar fsck.f2fs
-recovery_only(`
-  r_dir_file(recovery, sysfs_fs_f2fs)
-')
