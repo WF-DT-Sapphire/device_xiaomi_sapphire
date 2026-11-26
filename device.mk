@@ -21,9 +21,6 @@ $(call inherit-product, frameworks/native/build/phone-xhdpi-6144-dalvik-heap.mk)
 # Inherit from the proprietary version
 $(call inherit-product, vendor/xiaomi/sapphire/sapphire-vendor.mk)
 
-# Desativa a checagem de requisitos do kernel no check_vintf (AxionOS exige SYSVIPC e IP6_NF_NAT desligados)
-PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
-
 # Disable omx
 TARGET_SUPPORTS_OMX_SERVICE := false
 
@@ -31,7 +28,7 @@ TARGET_SUPPORTS_OMX_SERVICE := false
 PRODUCT_AAPT_CONFIG := normal
 PRODUCT_AAPT_PREF_CONFIG := xxhdpi
 
-PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := true
+PRODUCT_OTA_ENFORCE_VINTF_KERNEL_REQUIREMENTS := false
 
 # A/B
 AB_OTA_POSTINSTALL_CONFIG += \
