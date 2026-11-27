@@ -1,0 +1,49 @@
+diff --git a/quickstep/res/drawable/ic_clear_all.xml b/quickstep/res/drawable/ic_clear_all.xml
+new file mode 100644
+--- /dev/null
++++ b/quickstep/res/drawable/ic_clear_all.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++    <path
++        android:fillColor="#FFFFFF"
++        android:pathData="M5,13h14v-2H5v2zM3,17h14v-2H3v2zM7,7v2h14V7H7z" />
++</vector>
+diff --git a/quickstep/res/layout/overview_actions_container.xml b/quickstep/res/layout/overview_actions_container.xml
+--- a/quickstep/res/layout/overview_actions_container.xml
++++ b/quickstep/res/layout/overview_actions_container.xml
+@@ -36,6 +36,16 @@
++            android:theme="@style/ThemeControlHighlightWorkspaceColor" />
++
++        <Button
++            android:id="@+id/action_clear_all"
++            style="@style/OverviewActionButton"
++            android:layout_width="wrap_content"
++            android:layout_height="wrap_content"
++            android:layout_marginStart="@dimen/overview_actions_button_spacing"
++            android:drawableStart="@drawable/ic_clear_all"
++            android:text="@string/recents_clear_all"
+             android:theme="@style/ThemeControlHighlightWorkspaceColor" />
+ 
+         <Button
+             android:id="@+id/action_split"
+             style="@style/OverviewActionButton"
+             android:layout_width="wrap_content"
+diff --git a/quickstep/src/com/android/quickstep/views/RecentsView.java b/quickstep/src/com/android/quickstep/views/RecentsView.java
+--- a/quickstep/src/com/android/quickstep/views/RecentsView.java
++++ b/quickstep/src/com/android/quickstep/views/RecentsView.java
+@@ -1160,6 +1160,10 @@
+     public void init(OverviewActionsView actionsView, SplitSelectStateController splitController,
+             @Nullable DesktopRecentsTransitionController desktopRecentsTransitionController) {
+         mActionsView = actionsView;
++        View clearAllAction = actionsView.findViewById(R.id.action_clear_all);
++        if (clearAllAction != null) {
++            clearAllAction.setOnClickListener(this::dismissAllTasks);
++        }
+         mActionsView.updateHiddenFlags(HIDDEN_NO_TASKS, getTaskViewCount() == 0);
+         // Update flags for 1p/3p launchers
+         mActionsView.updateFor3pLauncher(!supportsAppPairs());

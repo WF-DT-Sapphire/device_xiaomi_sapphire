@@ -1,0 +1,271 @@
+diff --git a/quickstep/res/values-pt-rPT/strings.xml b/quickstep/res/values-pt-rPT/strings.xml
+--- a/quickstep/res/values-pt-rPT/strings.xml
++++ b/quickstep/res/values-pt-rPT/strings.xml
+@@ -156,4 +156,7 @@
+     <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"expandir <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
+     <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"reduzir <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
+     <string name="search_gesture_feature_title" msgid="1294044108313175306">"Circundar para Pesquisar"</string>
++
++    <string name="recent_task_option_lock">Bloquear</string>
++    <string name="recent_task_option_unlock">Desbloquear</string>
+ </resources>
+diff --git a/quickstep/res/values-pt/strings.xml b/quickstep/res/values-pt/strings.xml
+--- a/quickstep/res/values-pt/strings.xml
++++ b/quickstep/res/values-pt/strings.xml
+@@ -156,4 +156,7 @@
+     <string name="bubble_bar_accessibility_announce_expand" msgid="1503192695527477102">"abrir <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
+     <string name="bubble_bar_accessibility_announce_collapse" msgid="928284600086798791">"fechar <xliff:g id="BUBBLE_DESCRIPTION">%1$s</xliff:g>"</string>
+     <string name="search_gesture_feature_title" msgid="1294044108313175306">"Circule para pesquisar"</string>
++
++    <string name="recent_task_option_lock">Travar</string>
++    <string name="recent_task_option_unlock">Destravar</string>
+ </resources>
+diff --git a/quickstep/res/values/strings.xml b/quickstep/res/values/strings.xml
+--- a/quickstep/res/values/strings.xml
++++ b/quickstep/res/values/strings.xml
+@@ -366,4 +366,9 @@
+     <!-- Name of Google's new feature to circle to search anything on your phone screen, without
+      switching apps. [CHAR_LIMIT=60] -->
+     <string name="search_gesture_feature_title">Circle to Search</string>
++
++    <!-- Task menu option that locks an app so Clear all keeps it. [CHAR_LIMIT=30] -->
++    <string name="recent_task_option_lock">Lock</string>
++    <!-- Task menu option that unlocks a locked app. [CHAR_LIMIT=30] -->
++    <string name="recent_task_option_unlock">Unlock</string>
+ </resources>
+diff --git a/quickstep/src/com/android/quickstep/TaskOverlayFactory.java b/quickstep/src/com/android/quickstep/TaskOverlayFactory.java
+--- a/quickstep/src/com/android/quickstep/TaskOverlayFactory.java
++++ b/quickstep/src/com/android/quickstep/TaskOverlayFactory.java
+@@ -112,6 +112,7 @@
+     private static final TaskShortcutFactory[] MENU_OPTIONS = new TaskShortcutFactory[]{
+             TaskShortcutFactory.APP_INFO,
+             TaskShortcutFactory.SPLIT_SELECT,
++            TaskShortcutFactory.LOCK_TOGGLE,
+             TaskShortcutFactory.PIN,
+             TaskShortcutFactory.INSTALL,
+             TaskShortcutFactory.FREE_FORM,
+diff --git a/quickstep/src/com/android/quickstep/TaskShortcutFactory.java b/quickstep/src/com/android/quickstep/TaskShortcutFactory.java
+--- a/quickstep/src/com/android/quickstep/TaskShortcutFactory.java
++++ b/quickstep/src/com/android/quickstep/TaskShortcutFactory.java
+@@ -16,6 +16,8 @@
+ 
+ package com.android.quickstep;
++
++import com.android.quickstep.util.RecentsLockUtils;
+ 
+ import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
+ import static android.content.Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS;
+ import static android.view.Surface.ROTATION_0;
+@@ -398,6 +400,43 @@
+         }
+     };
++
++    TaskShortcutFactory LOCK_TOGGLE = new TaskShortcutFactory() {
++        @Override
++        public List<SystemShortcut> getShortcuts(RecentsViewContainer container,
++                TaskContainer taskContainer) {
++            boolean isLocked = RecentsLockUtils.isTaskViewLocked(
++                    container.asContext(), taskContainer.getTaskView());
++            return Collections.singletonList(
++                    new LockToggleSystemShortcut(container, taskContainer, isLocked));
++        }
++
++        @Override
++        public boolean showForGroupedTask() {
++            return true;
++        }
++    };
++
++    class LockToggleSystemShortcut extends SystemShortcut<RecentsViewContainer> {
++        private final TaskView mTaskView;
++        private final boolean mIsLocked;
++
++        LockToggleSystemShortcut(RecentsViewContainer target, TaskContainer taskContainer,
++                boolean isLocked) {
++            super(R.drawable.ic_lock,
++                    isLocked ? R.string.recent_task_option_unlock
++                            : R.string.recent_task_option_lock,
++                    target, taskContainer.getItemInfo(), taskContainer.getTaskView());
++            mTaskView = taskContainer.getTaskView();
++            mIsLocked = isLocked;
++        }
++
++        @Override
++        public void onClick(View view) {
++            RecentsLockUtils.setTaskViewLocked(mTarget.asContext(), mTaskView, !mIsLocked);
++            dismissTaskMenuView();
++        }
++    }
+ 
+     TaskShortcutFactory PIN = new TaskShortcutFactory() {
+         @Override
+         public List<SystemShortcut> getShortcuts(RecentsViewContainer container,
+diff --git a/quickstep/src/com/android/quickstep/util/RecentsLockUtils.java b/quickstep/src/com/android/quickstep/util/RecentsLockUtils.java
+new file mode 100644
+--- /dev/null
++++ b/quickstep/src/com/android/quickstep/util/RecentsLockUtils.java
+@@ -0,0 +1,89 @@
++package com.android.quickstep.util;
++
++import android.content.Context;
++import android.text.TextUtils;
++
++import com.android.launcher3.LauncherPrefs;
++import com.android.quickstep.views.TaskView;
++
++import java.util.Arrays;
++import java.util.LinkedHashSet;
++import java.util.List;
++import java.util.Set;
++
++/** Keeps the list of apps locked in Recents. Locked apps are skipped by Clear all and swipe. */
++public final class RecentsLockUtils {
++    private static final String SEPARATOR = ",";
++
++    private RecentsLockUtils() {}
++
++    /** Returns the "userId|package" keys of all locked apps. */
++    public static Set<String> getLockedKeys(Context context) {
++        String raw = LauncherPrefs.get(context).get(LauncherPrefs.LOCKED_RECENTS_APPS);
++        Set<String> out = new LinkedHashSet<>();
++        if (!TextUtils.isEmpty(raw)) {
++            out.addAll(Arrays.asList(raw.split(SEPARATOR)));
++        }
++        return out;
++    }
++
++    private static String key(int userId, String packageName) {
++        return packageName == null ? "" : userId + "|" + packageName;
++    }
++
++    /** Returns true if any app of the given task view is locked. */
++    public static boolean isTaskViewLocked(Context context, TaskView taskView) {
++        return isTaskViewLocked(getLockedKeys(context), taskView);
++    }
++
++    /** Same as above, reusing an already loaded set of locked keys. */
++    public static boolean isTaskViewLocked(Set<String> locked, TaskView taskView) {
++        if (locked.isEmpty()) {
++            return false;
++        }
++        for (var container : taskView.getTaskContainers()) {
++            var task = container.getTask();
++            if (locked.contains(key(task.key.userId, task.key.getPackageName()))) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    /**
++     * Adds the task views that are not locked to {@code dismissible}.
++     * Returns true if at least one task view is locked.
++     */
++    public static boolean collectDismissible(Context context,
++            Iterable<? extends TaskView> all, List<TaskView> dismissible) {
++        Set<String> locked = getLockedKeys(context);
++        boolean anyLocked = false;
++        for (TaskView taskView : all) {
++            if (isTaskViewLocked(locked, taskView)) {
++                anyLocked = true;
++            } else {
++                dismissible.add(taskView);
++            }
++        }
++        return anyLocked;
++    }
++
++    /** Locks or unlocks every app of the given task view. */
++    public static void setTaskViewLocked(Context context, TaskView taskView, boolean lock) {
++        Set<String> locked = getLockedKeys(context);
++        for (var container : taskView.getTaskContainers()) {
++            var task = container.getTask();
++            String key = key(task.key.userId, task.key.getPackageName());
++            if (key.isEmpty()) {
++                continue;
++            }
++            if (lock) {
++                locked.add(key);
++            } else {
++                locked.remove(key);
++            }
++        }
++        LauncherPrefs.get(context).put(LauncherPrefs.LOCKED_RECENTS_APPS,
++                TextUtils.join(SEPARATOR, locked));
++    }
++}
+diff --git a/quickstep/src/com/android/quickstep/views/RecentsView.java b/quickstep/src/com/android/quickstep/views/RecentsView.java
+--- a/quickstep/src/com/android/quickstep/views/RecentsView.java
++++ b/quickstep/src/com/android/quickstep/views/RecentsView.java
+@@ -16,6 +16,8 @@
+ 
+ package com.android.quickstep.views;
++
++import com.android.quickstep.util.RecentsLockUtils;
+ 
+ import static android.app.ActivityTaskManager.INVALID_TASK_ID;
+ import static android.view.Surface.ROTATION_0;
+ import static android.view.View.MeasureSpec.EXACTLY;
+@@ -4433,18 +4435,30 @@
+         }
+         PendingAnimation anim = new PendingAnimation(duration);
+ 
+-        for (TaskView taskView : getTaskViews()) {
++        // Locked apps are skipped by Clear all
++        final List<TaskView> dismissible = new java.util.ArrayList<>();
++        final boolean hasLocked = RecentsLockUtils.collectDismissible(
++                getContext(), getTaskViews(), dismissible);
++        for (TaskView taskView : dismissible) {
+             addDismissedTaskAnimations(taskView, duration, anim);
+         }
+ 
+         mPendingAnimation = anim;
+         mPendingAnimation.addEndListener(isSuccess -> {
+             if (isSuccess) {
+                 // Remove all the task views now
+                 finishRecentsAnimation(true /* toRecents */, false /* shouldPip */, () -> {
+-                    UI_HELPER_EXECUTOR.getHandler().post(
+-                            ActivityManagerWrapper.getInstance()::removeAllRecentTasks);
+-                    removeTasksViewsAndClearAllButton();
++                    if (hasLocked) {
++                        // Remove only the tasks that are not locked
++                        for (TaskView taskView : dismissible) {
++                            removeTaskInternal(taskView);
++                            removeView(taskView);
++                        }
++                    } else {
++                        UI_HELPER_EXECUTOR.getHandler().post(
++                                ActivityManagerWrapper.getInstance()::removeAllRecentTasks);
++                        removeTasksViewsAndClearAllButton();
++                    }
+                     startHome();
+                 });
+             }
+diff --git a/quickstep/src/com/android/launcher3/uioverrides/touchcontrollers/TaskViewTouchController.java b/quickstep/src/com/android/launcher3/uioverrides/touchcontrollers/TaskViewTouchController.java
+--- a/quickstep/src/com/android/launcher3/uioverrides/touchcontrollers/TaskViewTouchController.java
++++ b/quickstep/src/com/android/launcher3/uioverrides/touchcontrollers/TaskViewTouchController.java
+@@ -167,6 +167,11 @@
++                            mTaskBeingDragged = null;
++                            break;
++                        }
++                        if (com.android.quickstep.util.RecentsLockUtils.isTaskViewLocked(
++                                mRecentsView.getContext(), view)) {
+                             mTaskBeingDragged = null;
+                             break;
+                         }
+                         mTaskBeingDragged = view;
+                         int upDirection = mRecentsView.getPagedOrientationHandler()
+                                 .getUpDirection(mIsRtl);
+diff --git a/src/com/android/launcher3/LauncherPrefs.kt b/src/com/android/launcher3/LauncherPrefs.kt
+--- a/src/com/android/launcher3/LauncherPrefs.kt
++++ b/src/com/android/launcher3/LauncherPrefs.kt
+@@ -89,6 +89,9 @@
+         val ENABLE_TWOLINE_ALLAPPS_TOGGLE = backedUpItem("pref_enable_two_line_toggle", false)
+         @JvmField
+         val THEMED_ICONS = backedUpItem(Themes.KEY_THEMED_ICONS, false, EncryptionType.ENCRYPTED)
++        @JvmField
++        val LOCKED_RECENTS_APPS =
++            nonRestorableItem("pref_locked_recents_apps", "", EncryptionType.DEVICE_PROTECTED)
+         @JvmField val PROMISE_ICON_IDS = backedUpItem(InstallSessionHelper.PROMISE_ICON_IDS, "")
+         @JvmField val WORK_EDU_STEP = backedUpItem("showed_work_profile_edu", 0)
+         @JvmField
