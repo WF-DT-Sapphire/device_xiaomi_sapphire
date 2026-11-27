@@ -24,7 +24,7 @@ binder_call(system_app, hal_memtrack_default)
 binder_call(system_app, vendor_hal_gnss_qti)
 
 # TouchGrip: tell the touch IC the screen rotation
-allow system_app proc_tp_grip_area:file w_file_perms;
+allow system_app proc_tp_grip_area:file { getattr w_file_perms };
 
 # TouchGrip: touch game mode while a game is in the foreground
 set_prop(system_app, vendor_touch_game_prop)
