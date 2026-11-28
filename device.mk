@@ -115,6 +115,9 @@ TARGET_SCREEN_WIDTH := 1080
 
 PRODUCT_PACKAGES += RemovePackages
 
+PRODUCT_PACKAGES += SapphireNcmTetheringOverlay
+PRODUCT_PACKAGES += ConnectivityResSapphire
+
 # Bluetooth
 PRODUCT_PACKAGES += \
     android.hardware.bluetooth.audio-impl \
@@ -665,3 +668,5 @@ PRODUCT_PACKAGES += \
     
 # Preopt critical applications
     PRODUCT_DEXPREOPT_SPEED_APPS += Settings SystemUI
+
+# Ethernet nao deve assumir usb0 (tethering)
