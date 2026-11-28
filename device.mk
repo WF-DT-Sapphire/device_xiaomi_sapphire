@@ -665,9 +665,3 @@ PRODUCT_PACKAGES += \
     
 # Preopt critical applications
     PRODUCT_DEXPREOPT_SPEED_APPS += Settings SystemUI
-
-# USB tethering via NCM (RNDIS/GSI causa kernel panic no dwc3/SMMU)
-PRODUCT_PACKAGES += SapphireNcmTetheringOverlay
-
-# Ethernet nao deve assumir usb0 (conflita com USB tethering via NCM)
-PRODUCT_PACKAGES += SapphireEthernetFilterOverlay
